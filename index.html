@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#171080">
+	<meta name="description" content="ANTSKY Team Picker Editor: build, shuffle, and organize teams easily for free.">
+	<title>ANTSKY | Team Picker Editor</title>
+	<script>
+		try {
+			if (!localStorage.getItem('antsky-welcome-seen')) document.documentElement.classList.add('welcome-open');
+		} catch {}
+	</script>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			color-scheme: light;
+			--ink: #171080;
+			--blue: #2868ec;
+			--red: #e50909;
+			--paper: #fff;
+			--mist: #ececf0;
+			--green: #69d94c;
+			--pixel: "Press Start 2P", "Courier New", monospace;
+		}
+
+		* { box-sizing: border-box; }
+		[hidden] { display: none !important; }
+		html { scroll-behavior: smooth; scroll-padding-top: 82px; }
+		body { margin: 0; color: var(--paper); font-family: var(--pixel); background: var(--blue); }
+		button, input, textarea, select { font: inherit; }
+		button, a { -webkit-tap-highlight-color: transparent; }
+		a { color: inherit; }
+		.topbar { height: 96px; padding: 0 .5%; display: flex; align-items: center; justify-content: flex-start; gap: clamp(14px, 2vw, 28px); background: var(--paper); position: sticky; top: 0; z-index: 20; box-shadow: 0 3px 0 #17108012; }
+		.brand { display: inline-flex; align-items: center; }
+		.brand img { display: block; width: min(290px, 27vw); height: 76px; max-height: none; object-fit: cover; object-position: center; }
+		.menu-toggle { width: 44px; height: 44px; display: grid; place-content: center; gap: 5px; border: 0; background: transparent; cursor: pointer; }
+		.menu-toggle span { display: block; width: 25px; height: 3px; background: var(--ink); transition: transform .25s, width .25s; }
+		.menu-toggle:hover span:nth-child(2) { width: 18px; }
+		.menu-toggle[aria-expanded="true"] span:first-child { transform: translateY(8px) rotate(45deg); }
+		.menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+		.menu-toggle[aria-expanded="true"] span:last-child { transform: translateY(-8px) rotate(-45deg); }
+		.tool-tab { display: none; align-items: center; justify-content: center; gap: 10px; max-width: 250px; min-height: 44px; padding: 10px 16px; border: 0; border-radius: 10px; color: white; background: var(--red); font-size: 9px; line-height: 1.7; }
+		.tool-tab.visible { display: inline-flex; }
+		#rule-editor-tab { cursor: pointer; }
+		#rule-editor-tab:hover { background: var(--ink); }
+		.tool-tab.active { background: var(--ink); }
+		.menu-toggle { margin-left: auto; }
+		.menu-panel { position: absolute; right: 3.2%; top: calc(100% - 1px); display: grid; gap: 18px; padding: 24px; min-width: 220px; background: white; color: var(--ink); border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); opacity: 0; visibility: hidden; transform: translateY(-8px); transition: .2s ease; }
+		.menu-panel.open { opacity: 1; visibility: visible; transform: translateY(0); }
+		.menu-panel a { text-decoration: none; font-size: 10px; line-height: 1.8; }
+		.menu-panel a:hover { color: var(--red); }
+		main { overflow: clip; }
+		main.tool-active > .scene:not(.tool-view) { display: none; }
+		body.tool-active > footer { display: none; }
+		html.welcome-open, html.welcome-open body { overflow: hidden; }
+		html.welcome-open .topbar, html.welcome-open main, html.welcome-open footer { visibility: hidden; }
+		.welcome-screen { position: fixed; inset: 0; z-index: 50; display: none; overflow-y: auto; background: var(--blue); }
+		html.welcome-open .welcome-screen { display: grid; }
+		.scene { min-height: calc(100svh - 82px); position: relative; isolation: isolate; display: grid; place-items: center; padding: 76px 5.5%; background: linear-gradient(166deg, #181080 0%, #1e32b1 47%, #2868ec 100%); }
+		.scene::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .15; background-image: linear-gradient(#ffffff18 1px, transparent 1px), linear-gradient(90deg, #ffffff18 1px, transparent 1px); background-size: 34px 34px; mask-image: linear-gradient(to bottom, transparent, black 30%, black 85%, transparent); }
+		.scene-inner { width: min(1160px, 100%); margin: auto; text-align: center; }
+		.eyebrow { margin: 0 0 18px; color: var(--red); font-size: clamp(10px, 1.45vw, 17px); line-height: 1.8; }
+		.pixel-title { margin: 0; font-size: clamp(21px, 4.7vw, 50px); line-height: 1.55; letter-spacing: 0; text-wrap: balance; text-shadow: 4px 4px 0 #11106b; }
+		.subbrand { font-size: clamp(8px, 1.55vw, 15px); line-height: 2; margin: 12px 0 0; }
+		.hero { min-height: calc(100svh - 82px); padding: 40px 6%; align-items: stretch; }
+		.hero .scene-inner { display: flex; flex-direction: column; justify-content: center; }
+		.hero { min-height: 100svh; padding: 38px 6%; }
+		.hero-brand { width: min(900px, 92vw); margin: 0 auto clamp(30px, 6vh, 64px); }
+		.hero-brand img { width: 100%; max-height: 220px; object-fit: contain; filter: brightness(0) invert(1); }
+		.hero-copy { max-width: 720px; margin: 0 auto; text-align: left; }
+		.hero-title { font-size: clamp(27px, 6vw, 69px); line-height: 1.38; margin: 0; animation: idle 3.3s ease-in-out infinite; }
+		.hero-title span { display: block; }
+		.hero-title .joiner { font-size: .43em; line-height: 1.8; }
+		.hero-title .free-line { font-size: .34em; line-height: 1.9; }
+		.hero-bottom { margin-top: 28px; display: flex; justify-content: flex-end; align-items: center; }
+		.pixel-button { position: relative; overflow: hidden; display: inline-flex; justify-content: center; align-items: center; min-height: 56px; padding: 0 28px; border: 2px solid transparent; border-radius: 999px; color: white; background: var(--red); text-decoration: none; text-align: center; font-size: clamp(9px, 1.2vw, 13px); line-height: 1.8; cursor: pointer; transition: transform .22s ease, box-shadow .22s ease, background .22s ease; }
+		.pixel-button::after { content: ""; position: absolute; inset: -40% auto -40% -45%; width: 24%; background: #ffffff65; transform: skewX(-24deg); transition: left .42s ease; }
+		.pixel-button:hover, .pixel-button:focus-visible { transform: translateY(-5px) scale(1.025); box-shadow: 0 9px 0 #11106b, 0 14px 24px #0c0a5c55; outline: none; }
+		.pixel-button:hover::after { left: 130%; }
+		.pixel-button.green { background: var(--green); }
+		.pixel-button.white { color: var(--red); background: white; }
+		.pixel-button.white:hover { box-shadow: 0 8px 0 #16106c; }
+		.intro .scene-inner { max-width: 1060px; }
+		.intro-logo { display: block; width: min(820px, 90vw); max-height: 220px; margin: 0 auto; object-fit: contain; filter: brightness(0) invert(1); }
+		.intro-copy { margin: 32px auto 42px; max-width: 800px; font-size: clamp(9px, 1.3vw, 14px); line-height: 2.3; }
+		.visitor-stat { width: min(300px, 100%); margin: 0 auto 34px; display: grid; gap: 10px; text-align: left; }
+		.visitor-stat-label, .tool-form label, .contact-form label { color: var(--red); font-size: 10px; line-height: 1.8; }
+		.visitor-count-box { min-height: 58px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid white; border-radius: 10px; color: var(--ink); background: white; }
+		.visitor-count { font-size: 20px; line-height: 1.4; }
+		.visitor-count-note { color: #65627e; font: 12px "Courier New", monospace; }
+		.tool-form input, .tool-form textarea, .tool-form select, .contact-form input, .contact-form textarea { width: 100%; min-height: 46px; padding: 12px 14px; border: 2px solid transparent; border-radius: 10px; outline: none; background: #fff; color: var(--ink); font-family: "Courier New", monospace; font-size: 16px; }
+		.tool-form :focus, .contact-form :focus { border-color: var(--red); }
+		.benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+		.benefit { min-height: 52px; display: grid; place-items: center; padding: 10px; border-radius: 999px; color: var(--red); background: white; font-size: clamp(8px, 1.05vw, 11px); }
+		.modes .scene-inner { width: min(1160px, 100%); }
+		.mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 62px; }
+		.mode-card { position: relative; min-height: 230px; padding: 58px 24px 28px; border: 0; border-radius: 28px; background: white; color: var(--red); font-family: var(--pixel); text-align: center; cursor: pointer; transition: transform .25s, box-shadow .25s; }
+		.mode-card:hover, .mode-card:focus-visible { transform: translateY(-8px); box-shadow: 0 12px 0 #16106c88; outline: 3px solid white; outline-offset: 4px; }
+		.mode-label { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); width: min(220px, 82%); min-height: 46px; display: grid; place-items: center; padding: 8px; border-radius: 999px; color: white; background: var(--red); font-size: 10px; line-height: 1.7; }
+		.mode-card p { margin: 0; font-size: clamp(9px, 1.2vw, 13px); line-height: 2.2; }
+		.tool-view { display: none; padding: 0; }
+		main.tool-active > .tool-view { display: block; }
+		.tool-intro { min-height: calc(100svh - 96px); padding: clamp(64px, 9vh, 110px) 6%; }
+		.tool-intro .scene-inner { max-width: 1000px; }
+		.tool-logo { display: block; width: min(1000px, 94vw); height: clamp(90px, 12vw, 145px); margin: 0 auto 18px; object-fit: cover; object-position: center; }
+		.tool-intro .mode-label { position: static; display: inline-grid; width: auto; min-width: 155px; min-height: 38px; transform: none; margin: 0 auto 30px; border: 0; font-family: var(--pixel); cursor: default; }
+		.tool-description { max-width: 850px; margin: 26px auto 0; font-size: clamp(9px, 1.25vw, 13px); line-height: 2.3; }
+		.arcade-loader { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; overflow: hidden; background: linear-gradient(145deg, #171080, #2868ec); }
+		.arcade-loader[hidden] { display: none; }
+		.arcade-loader::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .2; background-image: linear-gradient(#ffffff20 1px, transparent 1px), linear-gradient(90deg, #ffffff20 1px, transparent 1px); background-size: 24px 24px; }
+		.arcade-loader-panel { position: relative; width: min(390px, 100%); margin: 0; padding: 32px 28px; border: 3px solid white; background: #171080; box-shadow: 8px 8px 0 #10105b, 0 0 38px #5de3d166; text-align: center; animation: arcade-panel-in .35s steps(4, end) both; }
+		.arcade-loader-plane { display: block; width: 76px; height: 58px; margin: 0 auto 16px; overflow: visible; image-rendering: pixelated; transform-origin: center; animation: arcade-flight .55s steps(3, end) infinite alternate; filter: drop-shadow(0 5px 0 #2868ec); }
+		.arcade-loader-plane .plane-body { fill: #5de3d1; }
+		.arcade-loader-plane .plane-highlight { fill: white; }
+		.magic-loader { background: radial-gradient(ellipse at center, #285ee8 0%, #19147f 72%); }
+		.magic-loader::before { opacity: .28; background-image: radial-gradient(circle, #fff 1px, transparent 2px), linear-gradient(#ffffff18 1px, transparent 1px), linear-gradient(90deg, #ffffff18 1px, transparent 1px); background-size: 47px 47px, 24px 24px, 24px 24px; animation: magic-stars 3s linear infinite; }
+		.magic-loader .arcade-loader-panel { border-color: #83eaff; box-shadow: 0 0 0 5px #171080, 0 0 30px #57dfff99; }
+		.arcade-loader-spell { display: block; width: 86px; height: 86px; margin: 0 auto 14px; overflow: visible; filter: drop-shadow(0 0 10px #7df4ff); animation: magic-float .7s steps(3, end) infinite alternate; }
+		.arcade-loader-spell .spell-star { fill: #7df4ff; transform-box: fill-box; transform-origin: center; animation: magic-spin 2s linear infinite; }
+		.arcade-loader-spell .spell-wand { fill: white; }
+		.magic-loader .arcade-loader-title { color: #b9f7ff; text-shadow: 3px 3px 0 #215bd3; }
+		.magic-loader .arcade-loader-caption { color: white; }
+		.magic-loader .arcade-loader-track { border-color: #83eaff; }
+		.magic-loader .arcade-loader-progress { background: repeating-linear-gradient(90deg, #83eaff 0 12px, transparent 12px 15px); }
+		.magic-loader .arcade-loader-dots span { background: #83eaff; }
+		.arcade-loader-title { margin: 0 0 10px; color: white; font-size: 13px; line-height: 1.8; text-shadow: 3px 3px 0 #2868ec; animation: arcade-flicker 1s steps(2, end) infinite; }
+		.arcade-loader-caption { margin: 0 0 22px; color: #5de3d1; font-size: 8px; line-height: 1.8; }
+		.arcade-loader-track { height: 24px; padding: 3px; border: 2px solid white; background: #100d57; }
+		.arcade-loader-progress { width: 0; height: 100%; background: repeating-linear-gradient(90deg, #5de3d1 0 12px, transparent 12px 15px); animation: arcade-loading 3s steps(18, end) forwards; }
+		.arcade-loader-dots { display: flex; justify-content: center; gap: 9px; margin-top: 22px; }
+		.arcade-loader-dots span { width: 10px; height: 10px; background: #5de3d1; animation: arcade-pulse .45s steps(2, end) infinite alternate; }
+		.arcade-loader-dots span:nth-child(2) { animation-delay: .15s; }
+		.arcade-loader-dots span:nth-child(3) { animation-delay: .3s; }
+		@keyframes arcade-loading { to { width: 100%; } }
+		@keyframes arcade-pulse { to { opacity: .25; transform: translateY(-5px); } }
+		@keyframes arcade-panel-in { from { opacity: 0; transform: scale(.88) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+		@keyframes arcade-flight { to { transform: translateY(-5px); filter: drop-shadow(0 8px 0 #2868ec) brightness(1.15); } }
+		@keyframes arcade-flicker { 50% { opacity: .7; } }
+		@keyframes magic-stars { to { background-position: 47px -47px, 0 24px, 24px 0; } }
+		@keyframes magic-float { to { transform: translateY(-7px) scale(1.05); } }
+		@keyframes magic-spin { to { rotate: 360deg; } }
+		.intro-spin { margin-top: 18px; min-height: 44px; }
+		.intro-spin { margin-top: 18px; min-height: 44px; }
+		.machine-scene { min-height: 100svh; padding: 42px 3%; }
+		.machine-layout { width: min(1320px, 100%); display: grid; grid-template-columns: minmax(280px, .95fr) minmax(300px, 1fr); gap: 28px; align-items: stretch; text-align: left; }
+		.machine-panel { padding: 24px; border-radius: 12px; background: white; color: var(--ink); }
+		.team-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+		.team-results-heading h3 { margin: 0; }
+		.screenshot-actions { display: flex; gap: 10px; }
+		.screenshot-actions .pixel-button { min-height: 42px; padding: 0 16px; border-radius: 10px; font-size: 8px; }
+		.screenshot-actions .screenshot-back { color: var(--ink); background: white; border-color: var(--ink); }
+		.screenshot-actions button[hidden] { display: none; }
+		body.screenshot-mode { overflow: hidden; }
+		body.screenshot-mode .tool-view { position: fixed; inset: 0; z-index: 40; display: block; overflow: auto; background: var(--blue); }
+		body.screenshot-mode .tool-intro, body.screenshot-mode #team-machine-panel, body.screenshot-mode #spin-machine { display: none !important; }
+		body.screenshot-mode .machine-scene { min-height: 100svh; padding: 0; }
+		body.screenshot-mode .machine-layout { width: 100%; min-height: 100svh; display: block; }
+		body.screenshot-mode #team-results-panel { min-height: 100svh; padding: 0 0 48px; border: 0; border-radius: 0; }
+		body.screenshot-mode .team-results-heading { position: sticky; top: 0; z-index: 2; margin: 0 0 32px; padding: 22px clamp(28px, 5vw, 72px); background: white; border-bottom: 3px solid var(--blue); }
+		body.screenshot-mode .machine-results-grid { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 18px; }
+		body.screenshot-mode .machine-results-grid, body.screenshot-mode .empty-results { margin-right: clamp(28px, 5vw, 72px); margin-left: clamp(28px, 5vw, 72px); }
+		body.screenshot-mode .machine-team { min-height: 180px; padding: 20px; border: 2px solid #d6d9ec; }
+		body.screenshot-mode .machine-team p { font-size: clamp(16px, 2vw, 24px); }
+		.machine-panel h3 { margin: 0 0 20px; color: var(--red); font-size: 11px; line-height: 1.8; }
+		.machine-form { display: grid; gap: 16px; }
+		.machine-form textarea { min-height: 210px; resize: vertical; }
+		.machine-form input, .machine-form textarea, .machine-form select, .rule-row input { width: 100%; min-height: 44px; padding: 12px; border: 2px solid transparent; border-radius: 10px; background: #e3e3e3; color: var(--ink); outline: none; font-family: "Courier New", monospace; font-size: 16px; }
+		.machine-form input[type="checkbox"] { appearance: none; width: 48px; min-height: 26px; height: 26px; padding: 0; border: 0; border-radius: 999px; background: #ddd; cursor: pointer; position: relative; }
+		.machine-form input[type="checkbox"]::after { content: ""; position: absolute; width: 18px; height: 18px; top: 4px; left: 4px; border-radius: 50%; background: var(--ink); transition: transform .2s; }
+		.machine-form input[type="checkbox"]:checked { background: #d9d5ff; }
+		.machine-form input[type="checkbox"]:checked::after { transform: translateX(22px); }
+		.machine-form :focus, .rule-row input:focus { border-color: var(--red); }
+		.machine-form label, .rule-label { color: var(--red); font-size: 9px; line-height: 1.8; }
+		.upload-zone { min-height: 82px; display: grid; place-items: center; padding: 14px; border: 2px dashed #aaa; border-radius: 12px; color: var(--ink); background: #e3e3e3; font-size: 8px; line-height: 1.9; text-align: center; cursor: pointer; transition: background .2s, border .2s; }
+		.upload-zone.dragging { border-color: var(--red); background: #fff0f0; }
+		.upload-zone input { display: none; }
+		.upload-actions { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+		.upload-actions .pixel-button { min-height: 42px; padding: 0 14px; font-size: 8px; }
+		.file-name { overflow: hidden; color: #555; font: 12px "Courier New", monospace; text-overflow: ellipsis; white-space: nowrap; }
+		.loading-line { display: none; align-items: center; gap: 12px; color: var(--red); font-size: 8px; }
+		.loading-line.active { display: flex; }
+		.loading-dot { width: 17px; height: 17px; border: 3px solid #ffcaca; border-top-color: var(--red); border-radius: 50%; animation: rotate .7s linear infinite; }
+		.rule-builder { display: grid; gap: 12px; }
+		.rule-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+		.rule-heading button, .rule-row button { border: 0; color: white; background: var(--red); border-radius: 999px; cursor: pointer; }
+		.rule-heading button { padding: 9px 12px; font-size: 8px; }
+		.rule-row { display: grid; grid-template-columns: 1fr 40px; gap: 8px; align-items: center; }
+		.rule-row button { width: 32px; height: 32px; font-size: 15px; }
+		.machine-form > .pixel-button { justify-self: end; min-height: 48px; border-radius: 10px; background: var(--ink); font-size: 9px; }
+		.create-rule-entry { width: 100%; min-height: 48px; border-radius: 10px; background: var(--red); font-size: 9px; }
+		.machine-form > .pixel-button.create-rule-entry { justify-self: stretch; background: var(--red); }
+		.rule-editor-view { display: none; min-height: calc(100svh - 96px); padding: 34px 3%; }
+		.tool-view.rule-editing .tool-intro, .tool-view.rule-editing .machine-scene { display: none; }
+		.tool-view.rule-editing .rule-editor-view { display: grid; }
+		.rule-editor-panel { width: min(1120px, 100%); min-height: min(680px, calc(100svh - 150px)); margin: auto; padding: 28px; border-radius: 12px; background: white; color: var(--ink); text-align: left; display: flex; flex-direction: column; }
+		.rule-editor-title { max-width: 780px; margin: 0 0 24px; color: var(--red); font-size: clamp(10px, 1.25vw, 14px); line-height: 1.9; }
+		.rule-editor-columns { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+		.rule-group-pair { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+		.rule-group-primary, .rule-group-partners { min-width: 0; }
+		.rule-editor-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 8px; font-size: clamp(7px, .9vw, 9px); line-height: 1.8; }
+		.rule-main-list { display: grid; gap: 14px; }
+		.rule-main-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 10px; align-items: center; }
+		.rule-main-row > input, .rule-companion-row input { width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; border: 2px solid transparent; border-radius: 10px; background: #e3e3e3; color: var(--ink); outline: none; font: 14px "Courier New", monospace; }
+		.rule-main-row > input:focus, .rule-companion-row input:focus { border-color: var(--red); }
+		.rule-main-row > button { width: 32px; height: 32px; border: 0; border-radius: 50%; color: white; background: var(--red); cursor: pointer; }
+		.rule-companion-list { display: grid; gap: 8px; }
+		.rule-companion-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 10px; align-items: center; }
+		.rule-companion-row button { width: 30px; height: 30px; border: 0; border-radius: 50%; color: white; background: var(--ink); cursor: pointer; }
+		.rule-companion-row button:disabled, .rule-add-main:disabled, .rule-add-companion:disabled { opacity: .35; cursor: not-allowed; }
+		.rule-add-companion, .rule-add-main { justify-self: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: white; background: var(--ink); font: 16px Arial, sans-serif; cursor: pointer; }
+		.rule-add-companion { grid-column: 1; justify-self: center; }
+		.rule-add-main { justify-self: start; margin-top: 14px; }
+		.rule-editor-footer { margin-top: auto; padding-top: 26px; display: flex; justify-content: flex-end; gap: 10px; }
+		.rule-editor-footer .pixel-button { min-height: 46px; padding: 0 18px; border-radius: 10px; font-size: 8px; }
+		.rule-editor-footer .back-rule, .rule-editor-footer .cancel-rule { color: var(--ink); background: white; border: 2px solid var(--ink); }
+		.rule-editor-footer .pixel-button:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+		.rule-summary { margin: 16px 0 0; color: #777; font-size: 8px; line-height: 1.8; }
+		.machine-results { min-height: 320px; }
+		.machine-results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+		.machine-team { min-height: 120px; padding: 12px; border-radius: 12px; background: #e3e3e3; }
+		.machine-team h4 { width: fit-content; min-width: 110px; margin: 0 0 10px; padding: 8px 14px; border-radius: 999px; color: white; background: var(--red); font-size: 8px; line-height: 1.6; text-align: center; }
+		.machine-team p { margin: 0; color: var(--ink); font: 14px/1.8 "Courier New", monospace; white-space: pre-line; }
+		.empty-results { display: grid; min-height: 260px; place-items: center; color: #777; font-size: 9px; line-height: 1.9; text-align: center; }
+		.spin-machine { display: grid; justify-items: center; gap: 20px; }
+		.wheel-wrap { position: relative; width: min(390px, 70vw); aspect-ratio: 1; display: grid; place-items: center; }
+		.wheel-canvas { width: 100%; height: 100%; border-radius: 50%; }
+		.wheel-canvas:not(.spinning):not(.stopped) { animation: wheel-idle 30s linear infinite, reveal-wheel 2.4s ease-in-out infinite; }
+		.wheel-canvas.spinning, .wheel-canvas.stopped { animation: none; }
+		.wheel-pointer { position: absolute; right: -8px; top: 50%; z-index: 2; width: 0; height: 0; border-top: 14px solid transparent; border-bottom: 14px solid transparent; border-right: 28px solid #5de3d1; filter: drop-shadow(2px 2px 2px #1118); transform: translateY(-50%); }
+		.winner-label { margin: 0; font-size: 12px; line-height: 1.8; text-align: center; }
+		.winner-box { width: min(480px, 100%); min-height: 62px; display: grid; place-items: center; padding: 12px; border-radius: 12px; color: var(--ink); background: white; font: 20px "Courier New", monospace; text-align: center; }
+		#confetti-canvas { position: fixed; inset: 0; z-index: 60; width: 100%; height: 100%; pointer-events: none; }
+		.wheel-idle { transform-origin: 50% 50%; }
+		@keyframes rotate { to { transform: rotate(360deg); } }
+		@keyframes wheel-idle { to { transform: rotate(360deg); } }
+		@keyframes reveal-wheel { 0%, 100% { filter: drop-shadow(0 0 0 #fff0); } 50% { filter: drop-shadow(0 0 12px #fff9); } }
+		.machine-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+		.machine-actions .pixel-button { min-height: 44px; padding: 0 16px; font-size: 8px; }
+		.machine-actions .pixel-button.secondary { color: var(--ink); background: white; border-color: var(--ink); }
+		.tool-panel { display: none; }
+		.tool-panel.active { display: block; animation: rise .55s both; }
+		.tool-form { display: grid; grid-template-columns: 1.4fr .8fr .8fr; gap: 18px; align-items: end; }
+		.field { display: grid; gap: 8px; }
+		.tool-form textarea { min-height: 132px; resize: vertical; }
+		.tool-form .wide { grid-column: 1 / -1; }
+		.tool-form button { justify-self: end; grid-column: 1 / -1; }
+		.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 22px; }
+		.team-result { padding: 18px; border: 2px solid #e5e5ef; border-radius: 12px; color: var(--ink); }
+		.team-result h4 { margin: 0 0 14px; color: var(--red); font-size: 10px; line-height: 1.8; }
+		.team-result p { margin: 0; font: 15px/1.8 "Courier New", monospace; white-space: pre-line; }
+		.contact .scene-inner { width: min(1110px, 100%); }
+		.contact-form { margin-top: 30px; padding: clamp(20px, 4vw, 42px); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; grid-template-areas: "name request" "phone request" ". submit"; gap: 16px 4%; border-radius: 28px; background: white; text-align: left; }
+		.contact-form .field { gap: 8px; align-self: start; }
+		.contact-name-field { grid-area: name; }
+		.contact-request-field { grid-area: request; grid-row: 1 / 3; }
+		.contact-phone-field { grid-area: phone; }
+		.contact-form textarea { min-height: 140px; resize: vertical; background: #e5e5e5; }
+		.contact-form input { min-height: 42px; background: #e5e5e5; }
+		.contact-form button { grid-area: submit; justify-self: end; min-width: 240px; }
+		.about .scene-inner { width: min(1110px, 100%); }
+		.about-copy { margin-top: 60px; padding: clamp(26px, 5vw, 54px); border-radius: 28px; color: var(--red); background: white; font-size: clamp(9px, 1.15vw, 12px); line-height: 2.5; }
+		.social .scene-inner { width: min(1000px, 100%); }
+		.social-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; }
+		.social-card { min-height: 250px; padding: 28px 18px 20px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 2px solid var(--red); border-radius: 26px; background: white; transition: transform .25s, box-shadow .25s; }
+		.social-card:hover { transform: translateY(-8px) rotate(-1deg); box-shadow: 8px 10px 0 #15106c88; }
+		.social-card img { width: 90px; height: 90px; object-fit: contain; }
+		.social-card .pixel-button { width: 88%; min-height: 46px; font-size: 9px; }
+		footer { padding: 30px 6%; border-top: 4px solid var(--blue); color: #f4f4ff; background: #090910; font-family: var(--pixel); text-align: center; font-size: 8px; line-height: 2.2; }
+		.footer-inner { width: min(1100px, 100%); margin: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+		.footer-brand { margin: 0; color: white; letter-spacing: .08em; }
+		.footer-note { margin: 0; color: #a8abc8; font-size: 7px; }
+		.footer-copy { width: 100%; margin: 8px 0 0; padding-top: 14px; border-top: 1px solid #ffffff25; color: #777b9c; font-size: 6px; }
+		.reveal { opacity: 0; transform: translateY(32px); transition: opacity .75s ease, transform .75s cubic-bezier(.2,.7,.25,1); }
+		.reveal.visible { opacity: 1; transform: translateY(0); }
+		.reveal-delay-1 { transition-delay: .12s; }
+		.reveal-delay-2 { transition-delay: .24s; }
+		.reveal-delay-3 { transition-delay: .36s; }
+		.toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; max-width: calc(100vw - 30px); padding: 16px 20px; color: white; background: var(--ink); border: 2px solid white; box-shadow: 5px 5px 0 var(--red); font-size: 9px; line-height: 1.9; text-align: center; opacity: 0; transform: translate(-50%, 20px); pointer-events: none; transition: .25s; }
+		.toast.show { opacity: 1; transform: translate(-50%, 0); }
+		@keyframes idle { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(-.6deg); } }
+		@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+		@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } .reveal { opacity: 1; transform: none; } }
+		@media (max-width: 760px) {
+			.topbar { height: 76px; padding: 0 1%; gap: 10px; }
+			.brand img { width: min(250px, 42vw); height: 62px; }
+			.scene { min-height: calc(100svh - 68px); padding: 64px 6%; }
+			.hero { padding: 34px 7%; }
+			.hero-brand { width: min(760px, 94vw); margin-bottom: 42px; }
+			.hero-brand img { max-height: 180px; }
+			.intro-logo { max-height: 170px; }
+			.hero-bottom { justify-content: flex-start; }
+			.pixel-button { min-height: 50px; padding: 0 20px; }
+			.mode-grid { grid-template-columns: 1fr; gap: 48px; margin-top: 52px; }
+			.mode-card { min-height: 185px; padding-top: 50px; }
+			.tool-form { grid-template-columns: 1fr 1fr; }
+			.tool-form .field:first-child { grid-column: 1 / -1; }
+			.machine-layout { grid-template-columns: 1fr; gap: 16px; }
+			.machine-scene { padding: 24px 4%; }
+			.machine-panel { padding: 18px; }
+			.machine-form textarea { min-height: 155px; }
+			.machine-results { min-height: 240px; }
+			.tool-intro { min-height: 50svh; }
+			.tool-logo { max-height: 180px; }
+			.contact-form { grid-template-columns: 1fr; grid-template-rows: auto; grid-template-areas: "name" "request" "phone" "submit"; gap: 16px; }
+			.contact-request-field { grid-row: auto; }
+			.contact-form button { justify-self: stretch; min-width: auto; }
+			.social-grid { gap: 12px; }
+			.social-card { min-height: 190px; padding: 20px 10px 14px; }
+			.social-card img { width: 66px; height: 66px; }
+			.social-card .pixel-button { width: 100%; min-height: 42px; padding: 0 8px; font-size: 7px; }
+			.about-copy { margin-top: 38px; }
+		}
+		@media (max-width: 460px) {
+			.hero-title { font-size: clamp(24px, 8vw, 35px); }
+			.benefits { grid-template-columns: 1fr; gap: 10px; }
+			.benefit { min-height: 46px; }
+			.tool-panel { padding: 20px 16px; }
+			.tool-tab { max-width: 118px; min-height: 38px; padding: 7px 8px; font-size: 6px; }
+			.rule-editor-view { padding: 18px 3%; }
+			.rule-editor-panel { min-height: calc(100svh - 110px); padding: 18px; }
+			.rule-editor-columns, .rule-editor-heading { gap: 12px; }
+			.rule-editor-heading { font-size: 6px; }
+			.brand img { width: min(205px, 48vw); height: 54px; }
+			.rule-main-row, .rule-companion-row { grid-template-columns: minmax(0, 1fr) 28px; gap: 5px; }
+			.rule-editor-panel { padding: 14px; }
+			.rule-main-row > input, .rule-companion-row input { min-height: 38px; padding: 8px; font-size: 12px; }
+			.rule-editor-footer { gap: 6px; }
+			.rule-editor-footer .pixel-button { min-height: 40px; padding: 0 10px; font-size: 6px; }
+			.upload-actions { grid-template-columns: 1fr; }
+			.machine-panel { padding: 14px; }
+			.machine-team { min-height: 96px; }
+			.wheel-wrap { width: min(320px, 78vw); }
+			.tool-form { grid-template-columns: 1fr; }
+			.tool-form .field:first-child, .tool-form .wide, .tool-form button { grid-column: 1; }
+			.social-grid { grid-template-columns: 1fr; gap: 16px; }
+			.social-card { min-height: 180px; }
+			.social-card img { width: 74px; height: 74px; }
+			.social-card .pixel-button { width: min(240px, 80%); font-size: 9px; }
+			.team-results-heading { align-items: flex-start; flex-direction: column; }
+			.screenshot-actions { width: 100%; }
+			.screenshot-actions .pixel-button { flex: 1; padding: 0 8px; font-size: 6px; }
+			body.screenshot-mode .team-results-heading { align-items: center; flex-direction: row; }
+		}
+	</style>
+</head>
+<body>
+	<div class="welcome-screen" aria-label="ANTSKY welcome">
+		<section class="scene hero" id="home">
+			<div class="scene-inner">
+				<div class="hero-brand"><img src="ASSET%20V.1/ANTSKY%20LOGO/ANTSKY%20TEAM%20PICKER%20EDITOR.png" alt="ANTSKY Team Picker Editor"></div>
+				<div class="hero-copy">
+					<h1 class="hero-title"><span>CHOOSE</span><span class="joiner">AND</span><span>CUSTOMIZE</span><span class="free-line">YOUR TEAM FOR FREE</span></h1>
+					<div class="hero-bottom"><button class="pixel-button" id="enter-app" type="button">START FOR FREE <span aria-hidden="true">&nbsp;↘</span></button></div>
+				</div>
+			</div>
+		</section>
+	</div>
+	<header class="topbar">
+		<a class="brand" id="lobby-home" href="#tools" aria-label="ANTSKY logo - return to product lobby"><img src="ASSET%20V.1/ANTSKY%20LOGO/ANTSKY%20BLACK%20LOGO.png" alt="ANTSKY"></a>
+		<span class="tool-tab" id="active-tool-tab" aria-live="polite"></span>
+		<button class="tool-tab" id="rule-editor-tab" type="button" aria-label="Open rule editor" hidden>CREATE RULE</button>
+		<button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-menu"><span></span><span></span><span></span></button>
+		<nav class="menu-panel" id="site-menu" aria-label="Main navigation">
+			<a href="#home">HOME</a><a href="#intro">INTRODUCTION</a><a href="#tools">TOOLS</a><a href="#contact">CONTACT</a><a href="#about">ABOUT</a>
+		</nav>
+	</header>
+	<main>
+		<section class="scene intro" id="intro">
+			<div class="scene-inner">
+				<img class="intro-logo reveal" src="ASSET%20V.1/ANTSKY%20LOGO/ANTSKY%20TEAM%20PICKER%20EDITOR.png" alt="ANTSKY Team Picker Editor Tools">
+				<p class="intro-copy reveal reveal-delay-1">TEAM PICKER EDITOR TOOLS. THE ULTIMATE TOOLKIT TO BUILD, RANDOMIZE, AND MANAGE YOUR TEAMS EFFORTLESSLY.</p>
+				<div class="visitor-stat reveal reveal-delay-2" aria-label="Visits from this browser">
+					<span class="visitor-stat-label">VISITS ON THIS DEVICE</span>
+					<div class="visitor-count-box"><output class="visitor-count" id="visitor-count" aria-live="polite">—</output><span class="visitor-count-note">TOTAL LOCAL VISITS</span></div>
+				</div>
+				<div class="benefits reveal reveal-delay-3"><div class="benefit">EASY TO USE</div><div class="benefit">FREE</div><div class="benefit">LESS THAN 1 MIN</div></div>
+			</div>
+		</section>
+		<section class="scene modes" id="tools">
+			<div class="scene-inner">
+				<p class="eyebrow reveal">FREE</p><h2 class="pixel-title reveal reveal-delay-1">TEAM CHOOSER AS+</h2>
+				<div class="mode-grid">
+					<button class="mode-card reveal" type="button" data-mode="without"><span class="mode-label">WITHOUT RULE</span><p>CREATE YOUR TEAM RANDOMLY, NOT BOUND BY ANY RULES</p></button>
+					<button class="mode-card reveal reveal-delay-1" type="button" data-mode="with"><span class="mode-label">WITH RULE</span><p>CREATE YOUR TEAM AND CHOOSE WHAT YOU WANT</p></button>
+					<button class="mode-card reveal reveal-delay-2" type="button" data-mode="spin"><span class="mode-label">SPIN</span><p>SPIN YOUR TEAM AND TEST YOUR FORTUNE</p></button>
+				</div>
+			</div>
+		</section>
+		<section class="tool-view" id="tool-view" aria-live="polite" hidden>
+			<div class="scene tool-intro">
+				<div class="scene-inner">
+					<img class="tool-logo" src="ASSET%20V.1/ANTSKY%20LOGO/ANTSKY%20LOGO%20WHITE%20KOSONGAN.png" alt="ANTSKY">
+					<span class="mode-label" id="tool-mode-label" aria-live="polite">WITHOUT RULE</span>
+					<p class="tool-description" id="tool-description">BUILD YOUR TEAMS FREELY! ADD YOUR PLAYER LIST, CHOOSE THE NUMBER OF TEAMS, AND START SHUFFLING.</p>
+				</div>
+			</div>
+			<div class="scene machine-scene">
+				<div class="machine-layout">
+					<section class="machine-panel" id="team-machine-panel">
+						<h3>DROP YOUR TXT OR CSV FILE</h3>
+					<form class="machine-form" id="machine-form">
+						<div class="upload-actions">
+							<label class="upload-zone" id="upload-zone" for="team-file"><span>DROP FILE OR <strong>CHOOSE</strong> ON YOUR EXPLORER</span><input id="team-file" type="file" accept=".txt,.csv,text/plain,text/csv"></label>
+							<span class="file-name" id="file-name">NO FILE SELECTED</span>
+						</div>
+						<div class="loading-line" id="file-loading"><span class="loading-dot"></span><span>READING PLAYER NAMES...</span></div>
+						<div class="field"><label for="machine-members">PLAYER NAMES (MAX 200)</label><textarea id="machine-members" placeholder="One player name per line" required></textarea></div>
+						<div class="field" id="machine-team-count-field">
+							<label for="machine-split-mode">DIVIDE YOUR TEAM BY</label>
+							<select id="machine-split-mode">
+								<option value="teams">NUMBER OF TEAMS</option>
+								<option value="size">TEAM SIZE</option>
+							</select>
+							<label for="machine-team-count" id="machine-count-label">NUMBER OF TEAMS</label>
+							<input id="machine-team-count" type="number" min="2" max="20" value="3" required>
+						</div>
+						<button class="pixel-button create-rule-entry" id="open-rule-editor" type="button" hidden>CREATE RULE FOR YOUR TEAM</button>
+						<div class="field" id="duplicate-field"><label class="rule-label" for="remove-duplicates">REMOVE DUPLICATE NAMES</label><input id="remove-duplicates" type="checkbox" checked></div>
+						<button class="pixel-button" id="machine-submit" type="submit">CREATE A MIRACLE</button>
+					</form>
+					</section>
+					<section class="machine-panel machine-results" id="team-results-panel">
+						<div class="team-results-heading"><h3>TEAM</h3><div class="screenshot-actions"><button class="pixel-button" id="screenshot-mode-button" type="button" hidden>SCREENSHOT MODE</button><button class="pixel-button screenshot-back" id="screenshot-back-button" type="button" hidden>BACK</button></div></div>
+						<div class="empty-results" id="empty-results">YOUR TEAMS WILL APPEAR HERE</div><div class="machine-results-grid" id="team-results"></div>
+					</section>
+					<section class="machine-panel spin-machine" id="spin-machine" hidden>
+						<div class="wheel-wrap"><span class="wheel-pointer" aria-hidden="true"></span><canvas class="wheel-canvas" id="wheel-canvas" width="720" height="720" aria-label="Player selection wheel"></canvas></div>
+						<p class="winner-label">WINNER</p><div class="winner-box" id="winner-box" aria-live="polite">READY TO SPIN</div>
+						<div class="machine-actions"><button class="pixel-button" id="spin-button" type="button">SPIN THE WHEEL</button><button class="pixel-button secondary" id="clear-winner" type="button">CLEAR WINNER</button></div>
+						<p class="tool-description">THE WINNER STAYS IN THE PLAYER LIST. SPIN AGAIN TO PICK ANOTHER WINNER.</p>
+					</section>
+				</div>
+			</div>
+			<div class="scene rule-editor-view" id="rule-editor-view" hidden>
+				<div class="rule-editor-panel">
+					<h2 class="rule-editor-title">CREATE A MANDATORY VARIABLE RULE FOR A VARIABLE</h2>
+					<div class="rule-editor-heading"><span>CHOOSE YOUR TEAM NAME</span><span>MUST BE ON THE SAME TEAM AS</span></div>
+					<div class="rule-editor-columns" id="rule-group-list"></div>
+					<button class="rule-add-main" id="add-main-rule" type="button" aria-label="Add primary rule" disabled>+</button>
+					<p class="rule-summary" id="rule-summary">Enter a primary member first, then add at least one teammate to unlock another rule.</p>
+					<div class="rule-editor-footer"><button class="pixel-button back-rule" id="back-rule-editor" type="button">BACK</button><button class="pixel-button cancel-rule" id="cancel-rule-editor" type="button">CANCEL</button><button class="pixel-button" id="apply-rule-editor" type="button" disabled>APPLY</button></div>
+				</div>
+			</div>
+		</section>
+		<section class="scene contact" id="contact">
+			<div class="scene-inner">
+				<p class="eyebrow reveal">NEED MORE TOOLS ??</p><h2 class="pixel-title reveal reveal-delay-1">CONTACT US</h2>
+				<form class="contact-form reveal reveal-delay-2" id="contact-form">
+					<div class="field contact-name-field"><label for="contact-name">NAME</label><input id="contact-name" name="name" placeholder="Your name" required></div>
+					<div class="field contact-request-field"><label for="contact-request">WHAT TOOLS DO YOU WANT?</label><textarea id="contact-request" name="request" placeholder="Tell us what tool you need" required></textarea></div>
+					<div class="field contact-phone-field"><label for="contact-phone">WHATSAPP NUMBER</label><input id="contact-phone" name="phone" type="tel" placeholder="Your WhatsApp number" required></div>
+					<button class="pixel-button green" type="submit">SEND REQUEST</button>
+				</form>
+			</div>
+		</section>
+		<section class="scene about" id="about">
+			<div class="scene-inner">
+				<p class="eyebrow reveal">ABOUT US</p><h2 class="pixel-title reveal reveal-delay-1">ANTSKY STUDIO</h2>
+				<p class="about-copy reveal reveal-delay-2">ANTSKY STUDIO BORN FROM A PASSION FOR INTERACTIVE DESIGN AND PROGRAMMING LOGIC. ANTSKY STUDIO IS A PLACE WHERE CREATIVITY AND TECHNOLOGY MEET, MAKING DIGITAL TOOLS THAT ARE SIMPLE, FUNCTIONAL, AND FUN TO USE. OUR TEAM PICKER EDITOR TOOLS WERE DESIGNED WITH A SINGLE GOAL IN MIND: TO ELIMINATE THE HEADACHE OF GROUP DIVISION. WHETHER YOU NEED STRICT FAIRNESS RULES, PURE RANDOMNESS, OR A SHOT OF THE WHEEL, OUR STUDIO PROVIDES THE RIGHT TOOLS YOU NEED TO MAKE ORGANIZING YOUR COMMUNITY EFFORTLESS.</p>
+			</div>
+		</section>
+		<section class="scene social" id="social">
+			<div class="scene-inner">
+				<p class="eyebrow reveal">FIND US ON</p><h2 class="pixel-title reveal reveal-delay-1">ANTSKY CONTACT</h2>
+				<div class="social-grid">
+					<article class="social-card reveal"><img src="ASSET%20V.1/SOCIAL%20MEDIA%20LOGO/LOGO%20INSTAGRAM.jfif" alt="Instagram"><a class="pixel-button" href="https://www.instagram.com/whyunurwskt_03/" target="_blank" rel="noopener noreferrer">CONTACT US</a></article>
+					<article class="social-card reveal reveal-delay-1"><img src="ASSET%20V.1/SOCIAL%20MEDIA%20LOGO/LOGO%20WHATSAPP.webp" alt="WhatsApp"><a class="pixel-button" href="https://wa.me/628811184158" target="_blank" rel="noopener noreferrer">CONTACT US</a></article>
+					<article class="social-card reveal reveal-delay-2"><img src="ASSET%20V.1/SOCIAL%20MEDIA%20LOGO/LOGO%20GITHUB.png" alt="GitHub"><a class="pixel-button" href="https://github.com/YuuAntiSuki" target="_blank" rel="noopener noreferrer">CONTACT US</a></article>
+				</div>
+			</div>
+		</section>
+	</main>
+	<footer>
+		<div class="footer-inner">
+			<p class="footer-brand">ANTSKY STUDIO</p>
+			<p class="footer-note">ARCADE TOOLS BUILT FOR YOUR TEAM</p>
+			<p class="footer-copy">© 2026 ANTSKY STUDIO. ALL RIGHTS RESERVED.</p>
+		</div>
+	</footer>
+	<div class="toast" id="toast" role="status"></div>
+	<div class="arcade-loader" id="arcade-loader" role="status" aria-live="polite" aria-label="Loading product" hidden>
+		<div class="arcade-loader-panel">
+			<svg class="arcade-loader-plane" viewBox="0 0 16 12" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+				<path class="plane-body" d="M14 5h-3V3H9V1H7v3H4V3H2v2H1v2h3v2h2v2h2V9h2V7h3z"/>
+				<path class="plane-highlight" d="M12 5h2v1h-2zM7 5h4v1H7zM6 4h1v3H6z"/>
+			</svg>
+			<p class="arcade-loader-title">LOADING...</p>
+			<p class="arcade-loader-caption">PREPARING YOUR GAME</p>
+			<div class="arcade-loader-track" aria-hidden="true"><div class="arcade-loader-progress"></div></div>
+			<div class="arcade-loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+		</div>
+	</div>
+	<div class="arcade-loader magic-loader" id="miracle-loader" role="status" aria-live="polite" aria-label="Creating teams" hidden>
+		<div class="arcade-loader-panel">
+			<svg class="arcade-loader-spell" viewBox="0 0 64 64" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+				<path class="spell-star" d="M32 2 38 23 60 16 45 32 62 43 40 42 32 62 25 42 3 48 19 32 2 20 25 23z"/>
+				<path class="spell-wand" d="m15 48 3-3 18-18 4 4-18 18-3 3zm23-24 2-2 3 3-2 2zm5-5 2-6 2 6 6 2-6 2-2 6-2-6-6-2zm-34 8 1-4 2 4 4 1-4 2-2 4-1-4-4-2z"/>
+			</svg>
+			<p class="arcade-loader-title">CASTING MAGIC...</p>
+			<p class="arcade-loader-caption">BALANCING YOUR TEAMS</p>
+			<div class="arcade-loader-track" aria-hidden="true"><div class="arcade-loader-progress"></div></div>
+			<div class="arcade-loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+		</div>
+	</div>
+	<script>
+		const menuButton = document.querySelector('.menu-toggle');
+		const menu = document.querySelector('.menu-panel');
+		const toast = document.querySelector('#toast');
+		const arcadeLoader = document.querySelector('#arcade-loader');
+		const miracleLoader = document.querySelector('#miracle-loader');
+		let toastTimer;
+		let modeLoading = false;
+		let miracleLoading = false;
+		let selectedMode = 'without';
+		let screenshotReturnScroll = 0;
+		let ruleGroups = [];
+		let appliedRuleGroups = [];
+		let ruleDraftOpen = false;
+
+		function showToast(message) {
+			toast.textContent = message;
+			toast.classList.add('show');
+			clearTimeout(toastTimer);
+			toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+		}
+
+		function returnToLobby() {
+			exitScreenshotMode();
+			toolView.classList.remove('rule-editing');
+			toolView.hidden = true;
+			document.querySelector('main').classList.remove('tool-active');
+			document.body.classList.remove('tool-active');
+			toolTab.classList.remove('visible');
+			ruleEditorTab.hidden = true;
+			ruleEditorTab.classList.remove('active');
+			menu.classList.remove('open');
+			menuButton.setAttribute('aria-expanded', 'false');
+			document.querySelector('#tools').scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+
+		document.querySelector('#enter-app').addEventListener('click', () => {
+			document.documentElement.classList.remove('welcome-open');
+			try { localStorage.setItem('antsky-welcome-seen', 'true'); } catch {}
+			document.querySelector('#intro').scrollIntoView({ behavior: 'smooth' });
+		});
+
+		menuButton.addEventListener('click', () => {
+			const open = menuButton.getAttribute('aria-expanded') !== 'true';
+			menuButton.setAttribute('aria-expanded', String(open));
+			menu.classList.toggle('open', open);
+		});
+		menu.querySelectorAll('a').forEach(link => link.addEventListener('click', event => {
+			menu.classList.remove('open');
+			menuButton.setAttribute('aria-expanded', 'false');
+			if (link.hash !== '#home') return;
+			event.preventDefault();
+			returnToLobby();
+		}));
+
+		document.querySelector('#lobby-home').addEventListener('click', event => {
+			event.preventDefault();
+			returnToLobby();
+		});
+
+		const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+			if (entry.isIntersecting) {
+				entry.target.classList.add('visible');
+				observer.unobserve(entry.target);
+			}
+		}), { threshold: 0.14 });
+		document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
+
+		const visitorCount = document.querySelector('#visitor-count');
+		try {
+			const visitSessionKey = 'antsky-visit-counted';
+			if (!sessionStorage.getItem(visitSessionKey)) {
+				sessionStorage.setItem(visitSessionKey, 'true');
+				const nextCount = Number(localStorage.getItem('antsky-local-visit-count') || 0) + 1;
+				localStorage.setItem('antsky-local-visit-count', String(nextCount));
+			}
+			visitorCount.value = Number(localStorage.getItem('antsky-local-visit-count') || 0).toLocaleString();
+		} catch {
+			visitorCount.value = '—';
+			visitorCount.title = 'Visit count is unavailable because browser storage is blocked.';
+		}
+
+		const toolView = document.querySelector('#tool-view');
+		const toolTab = document.querySelector('#active-tool-tab');
+		const ruleEditorTab = document.querySelector('#rule-editor-tab');
+		const machineMembers = document.querySelector('#machine-members');
+		const machineForm = document.querySelector('#machine-form');
+		const machineSplitMode = document.querySelector('#machine-split-mode');
+		const machineCountLabel = document.querySelector('#machine-count-label');
+		const machineTeamCount = document.querySelector('#machine-team-count');
+		const resultGrid = document.querySelector('#team-results');
+		const wheel = document.querySelector('#wheel-canvas');
+		const wheelContext = wheel.getContext('2d');
+		const wheelPalette = ['#e84b3c', '#32a4dc', '#2fc875', '#9b59b6', '#e67e22', '#f1c40f', '#e84393', '#16a085'];
+		let wheelBusy = false;
+
+		function updateSplitModeInput() {
+			const splitBySize = machineSplitMode.value === 'size';
+			machineCountLabel.textContent = splitBySize ? 'PLAYERS PER TEAM' : 'NUMBER OF TEAMS';
+			machineTeamCount.min = splitBySize ? '1' : '2';
+			machineTeamCount.max = splitBySize ? '200' : '20';
+			const value = Number(machineTeamCount.value);
+			if (!Number.isInteger(value) || value < Number(machineTeamCount.min)) machineTeamCount.value = machineTeamCount.min;
+			else if (value > Number(machineTeamCount.max)) machineTeamCount.value = machineTeamCount.max;
+		}
+
+		machineSplitMode.addEventListener('change', updateSplitModeInput);
+
+		const modeCopy = {
+			without: ['WITHOUT RULE', 'BUILD YOUR TEAMS FREELY! IN LINE WITH THE CONCEPT “CREATE YOUR TEAM RANDOMLY, NOT BOUND BY ANY RULES”. THIS FEATURE IS DESIGNED FOR MAXIMUM FLEXIBILITY.'],
+			with: ['WITH RULE', 'RANDOMIZE TEAMS WITH CUSTOM CONDITIONS! LOCK SPECIFIC MEMBERS TOGETHER BEFORE SHUFFLING. ADD AS MANY GROUP RULES AS YOU NEED.'],
+			spin: ['SPIN', 'SPIN THE WHEEL TO PICK A RANDOM NAME! PERFECT FOR MAKING QUICK, FAIR, AND FUN DECISIONS.']
+		};
+
+		function openTool(mode) {
+			exitScreenshotMode();
+			selectedMode = mode;
+			const [label, description] = modeCopy[mode];
+			document.querySelector('#tool-mode-label').textContent = label;
+			document.querySelector('#tool-description').textContent = description;
+			document.querySelector('#tool-mode-label').textContent = label;
+			document.querySelector('#tool-mode-label').hidden = false;
+			toolTab.textContent = mode === 'spin' ? 'SPIN' : mode === 'with' ? 'WITH RULE' : 'WITHOUT RULE';
+			toolTab.classList.add('visible');
+			ruleEditorTab.hidden = true;
+			toolView.hidden = false;
+			toolView.classList.remove('rule-editing');
+			document.querySelector('main').classList.add('tool-active');
+			document.body.classList.add('tool-active');
+			document.querySelector('#open-rule-editor').hidden = mode !== 'with';
+			document.querySelector('#machine-team-count-field').hidden = mode === 'spin';
+			document.querySelector('#machine-submit').hidden = mode === 'spin';
+			document.querySelector('#spin-machine').hidden = mode !== 'spin';
+			document.querySelector('#team-results-panel').hidden = mode === 'spin';
+			resultGrid.replaceChildren();
+			document.querySelector('#empty-results').hidden = false;
+			document.querySelector('#screenshot-mode-button').hidden = true;
+			document.querySelector('#screenshot-back-button').hidden = true;
+			if (mode === 'spin') drawWheel(readMembers());
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		}
+
+		function closeTool() {
+			document.querySelector('main').classList.remove('tool-active');
+			document.body.classList.remove('tool-active');
+			toolView.hidden = true;
+			toolTab.classList.remove('visible');
+			ruleEditorTab.hidden = true;
+			document.querySelector('#tools').scrollIntoView({ behavior: 'smooth' });
+		}
+
+		function renderRuleEditor() {
+			const groupList = document.querySelector('#rule-group-list');
+			groupList.replaceChildren();
+			ruleGroups.forEach((group, groupIndex) => {
+				const pair = document.createElement('div');
+				pair.className = 'rule-group-pair';
+				const primaryColumn = document.createElement('div');
+				primaryColumn.className = 'rule-group-primary';
+				const mainRow = document.createElement('div');
+				mainRow.className = 'rule-main-row';
+				const mainInput = document.createElement('input');
+				mainInput.value = group.primary;
+				mainInput.placeholder = 'Primary member';
+				mainInput.setAttribute('aria-label', 'Primary team member');
+				mainInput.addEventListener('input', () => { group.primary = mainInput.value; updateRuleControls(); });
+				const removeGroup = document.createElement('button');
+				removeGroup.type = 'button';
+				removeGroup.textContent = '×';
+				removeGroup.setAttribute('aria-label', 'Remove primary rule');
+				removeGroup.addEventListener('click', () => { ruleGroups.splice(groupIndex, 1); renderRuleEditor(); });
+				mainRow.append(mainInput, removeGroup);
+				primaryColumn.append(mainRow);
+				pair.append(primaryColumn);
+
+				const partnerColumn = document.createElement('div');
+				partnerColumn.className = 'rule-group-partners rule-companion-list';
+				group.partners.forEach((partner, partnerIndex) => {
+					const partnerRow = document.createElement('div');
+					partnerRow.className = 'rule-companion-row';
+					const partnerInput = document.createElement('input');
+					partnerInput.value = partner;
+					partnerInput.placeholder = 'Member who must stay together';
+					partnerInput.setAttribute('aria-label', `Same-team member ${partnerIndex + 1}`);
+					partnerInput.disabled = !group.primary.trim();
+					partnerInput.addEventListener('input', () => { group.partners[partnerIndex] = partnerInput.value; updateRuleControls(); });
+					const removePartner = document.createElement('button');
+					removePartner.type = 'button';
+					removePartner.textContent = '×';
+					removePartner.disabled = group.partners.length === 1;
+					removePartner.setAttribute('aria-label', 'Remove teammate');
+					removePartner.addEventListener('click', () => { group.partners.splice(partnerIndex, 1); renderRuleEditor(); });
+					partnerRow.append(partnerInput, removePartner);
+					partnerColumn.append(partnerRow);
+				});
+				const addPartner = document.createElement('button');
+				addPartner.type = 'button';
+				addPartner.className = 'rule-add-companion';
+				addPartner.textContent = '+';
+				addPartner.disabled = !group.primary.trim();
+				addPartner.setAttribute('aria-label', 'Add teammate to this rule');
+				addPartner.addEventListener('click', () => { if (!group.primary.trim()) return; group.partners.push(''); renderRuleEditor(); });
+				partnerColumn.append(addPartner);
+				pair.append(partnerColumn);
+				groupList.append(pair);
+			});
+			updateRuleControls();
+		}
+
+		function updateRuleControls() {
+				ruleGroups.forEach((group, index) => {
+					const partnerColumn = document.querySelectorAll('.rule-companion-list')[index];
+				if (!partnerColumn) return;
+				partnerColumn.querySelectorAll('input').forEach(input => { input.disabled = !group.primary.trim(); });
+				const addPartner = partnerColumn.querySelector('.rule-add-companion');
+				if (addPartner) addPartner.disabled = !group.primary.trim();
+			});
+			const current = ruleGroups.at(-1);
+			const canAddMain = ruleGroups.length === 0 || Boolean(current && current.primary.trim() && current.partners.some(name => name.trim()));
+			document.querySelector('#add-main-rule').disabled = !canAddMain;
+			const normalizedDraft = ruleGroups.filter(group => group.primary.trim() || group.partners.some(name => name.trim())).map(group => ({ primary: group.primary.trim(), partners: group.partners.map(name => name.trim()).filter(Boolean) }));
+			const normalizedApplied = appliedRuleGroups.filter(group => group.primary.trim() || group.partners.some(name => name.trim())).map(group => ({ primary: group.primary.trim(), partners: group.partners.map(name => name.trim()).filter(Boolean) }));
+			const hasChanges = JSON.stringify(normalizedDraft) !== JSON.stringify(normalizedApplied);
+			const hasInvalidGroup = normalizedDraft.some(group => !group.primary || !group.partners.length);
+			document.querySelector('#apply-rule-editor').disabled = !hasChanges || hasInvalidGroup;
+			document.querySelector('#rule-summary').textContent = canAddMain
+				? 'Rule ready. Add another primary member or apply these team rules.'
+				: 'Enter a primary member, then add at least one teammate to unlock another rule.';
+		}
+
+		function openRuleEditor() {
+			if (!ruleDraftOpen) {
+				ruleGroups = appliedRuleGroups.map(group => ({ primary: group.primary, partners: [...group.partners] }));
+				ruleDraftOpen = true;
+			}
+			if (!ruleGroups.length) ruleGroups.push({ primary: '', partners: [''] });
+			renderRuleEditor();
+			toolView.classList.add('rule-editing');
+			document.querySelector('#rule-editor-view').hidden = false;
+			ruleEditorTab.hidden = false;
+			ruleEditorTab.classList.add('active');
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		}
+
+		function closeRuleEditor() {
+			toolView.classList.remove('rule-editing');
+			document.querySelector('#rule-editor-view').hidden = true;
+			ruleEditorTab.classList.remove('active');
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		}
+
+		document.querySelectorAll('[data-mode]').forEach(card => {
+			card.addEventListener('click', () => {
+				if (modeLoading) return;
+				modeLoading = true;
+				arcadeLoader.hidden = false;
+				document.body.setAttribute('aria-busy', 'true');
+				setTimeout(() => {
+					openTool(card.dataset.mode);
+					arcadeLoader.hidden = true;
+					document.body.removeAttribute('aria-busy');
+					modeLoading = false;
+				}, 3000);
+			});
+		});
+		document.querySelector('#open-rule-editor').addEventListener('click', openRuleEditor);
+		ruleEditorTab.addEventListener('click', () => {
+			if (toolView.classList.contains('rule-editing')) closeRuleEditor();
+			else openRuleEditor();
+		});
+		document.querySelector('#cancel-rule-editor').addEventListener('click', closeRuleEditor);
+		document.querySelector('#back-rule-editor').addEventListener('click', closeRuleEditor);
+		document.querySelector('#cancel-rule-editor').addEventListener('click', () => {
+			ruleGroups = appliedRuleGroups.map(group => ({ primary: group.primary, partners: [...group.partners] }));
+			ruleDraftOpen = false;
+		});
+		document.querySelector('#add-main-rule').addEventListener('click', () => {
+			const current = ruleGroups.at(-1);
+			if (ruleGroups.length && (!current || !current.primary.trim() || !current.partners.some(name => name.trim()))) return;
+			ruleGroups.push({ primary: '', partners: [''] });
+			renderRuleEditor();
+		});
+		document.querySelector('#apply-rule-editor').addEventListener('click', () => {
+			if (document.querySelector('#apply-rule-editor').disabled) return;
+			const incomplete = ruleGroups.find(group => group.primary.trim() && !group.partners.some(name => name.trim()));
+			const orphaned = ruleGroups.find(group => !group.primary.trim() && group.partners.some(name => name.trim()));
+			if (incomplete || orphaned) { showToast('COMPLETE EACH PRIMARY MEMBER AND AT LEAST ONE TEAMMATE.'); return; }
+			ruleGroups = ruleGroups.filter(group => group.primary.trim() && group.partners.some(name => name.trim())).map(group => ({ primary: group.primary.trim(), partners: group.partners.map(name => name.trim()).filter(Boolean) }));
+			appliedRuleGroups = ruleGroups.map(group => ({ primary: group.primary, partners: [...group.partners] }));
+			ruleDraftOpen = false;
+			closeRuleEditor();
+			renderRuleEditor();
+			showToast(ruleGroups.length ? `${ruleGroups.length} TEAM RULES APPLIED.` : 'NO TEAM RULES APPLIED.');
+		});
+		function parseCsvRows(text) {
+			const rows = [];
+			let row = [];
+			let cell = '';
+			let quoted = false;
+			for (let index = 0; index < text.length; index++) {
+				const character = text[index];
+				if (character === '"' && quoted && text[index + 1] === '"') { cell += '"'; index++; }
+				else if (character === '"') quoted = !quoted;
+				else if (character === ',' && !quoted) { row.push(cell.trim()); cell = ''; }
+				else if ((character === '\n' || character === '\r') && !quoted) {
+					if (character === '\r' && text[index + 1] === '\n') index++;
+					row.push(cell.trim());
+					if (row.some(value => value)) rows.push(row);
+					row = []; cell = '';
+				} else cell += character;
+			}
+			row.push(cell.trim());
+			if (row.some(value => value)) rows.push(row);
+			return rows;
+		}
+
+		function namesFromFile(text, fileName) {
+			const cleanText = text.replace(/^\uFEFF/, '');
+			if (/\.csv$/i.test(fileName)) {
+				const rows = parseCsvRows(cleanText);
+				if (rows.length && /^(name|player|member|anggota|nama)$/i.test(rows[0][0])) rows.shift();
+				return rows.map(row => row[0]).filter(Boolean);
+			}
+			return cleanText.split(/[\r\n,;]+/).map(name => name.trim()).filter(Boolean);
+		}
+
+		async function loadPlayerFile(file) {
+			if (!file) return;
+			if (!/\.(csv|txt)$/i.test(file.name)) { showToast('CHOOSE A CSV OR TXT FILE.'); return; }
+			document.querySelector('#file-name').textContent = file.name;
+			document.querySelector('#file-loading').classList.add('active');
+			try {
+				const contents = await file.text();
+				const names = namesFromFile(contents, file.name).slice(0, 200);
+				await new Promise(resolve => setTimeout(resolve, 650));
+				machineMembers.value = names.join('\n');
+				document.querySelector('#file-loading').classList.remove('active');
+				if (selectedMode === 'spin') drawWheel(names);
+				showToast(`${names.length} NAMES LOADED. THE PLAYER LIST IS READY TO EDIT.`);
+			} catch {
+				document.querySelector('#file-loading').classList.remove('active');
+				showToast('THIS FILE COULD NOT BE READ. TRY ANOTHER FILE.');
+			}
+		}
+
+		document.querySelector('#team-file').addEventListener('change', event => loadPlayerFile(event.target.files[0]));
+		const uploadZone = document.querySelector('#upload-zone');
+		['dragenter', 'dragover'].forEach(type => uploadZone.addEventListener(type, event => { event.preventDefault(); uploadZone.classList.add('dragging'); }));
+		['dragleave', 'drop'].forEach(type => uploadZone.addEventListener(type, event => { event.preventDefault(); uploadZone.classList.remove('dragging'); }));
+		uploadZone.addEventListener('drop', event => loadPlayerFile(event.dataTransfer.files[0]));
+
+		function readMembers() {
+			let names = machineMembers.value.split(/[\r\n,;]+/).map(name => name.trim()).filter(Boolean);
+			if (document.querySelector('#remove-duplicates').checked) names = [...new Set(names.map(name => name.toLocaleLowerCase()).map((key, index, all) => ({ key, index, name: names[index] })).filter((item, index, all) => all.findIndex(other => other.key === item.key) === index).map(item => item.name))];
+			return names.slice(0, 200);
+		}
+
+		function shuffle(items) {
+			const shuffled = [...items];
+			for (let index = shuffled.length - 1; index > 0; index--) {
+				const swapIndex = Math.floor(Math.random() * (index + 1));
+				[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+			}
+			return shuffled;
+		}
+
+		function renderTeams(teams) {
+			resultGrid.replaceChildren();
+			teams.forEach((team, index) => {
+				const card = document.createElement('article');
+				card.className = 'machine-team';
+				const heading = document.createElement('h4');
+				heading.textContent = `TEAM ${String.fromCharCode(65 + index)}`;
+				const names = document.createElement('p');
+				names.textContent = team.join('\n');
+				card.append(heading, names);
+				resultGrid.append(card);
+			});
+			document.querySelector('#empty-results').hidden = teams.length > 0;
+			document.querySelector('#screenshot-mode-button').hidden = selectedMode === 'spin' || teams.length === 0;
+		}
+
+		function exitScreenshotMode() {
+			if (!document.body.classList.contains('screenshot-mode')) return;
+			document.body.classList.remove('screenshot-mode');
+			document.querySelector('#screenshot-mode-button').hidden = selectedMode === 'spin' || resultGrid.children.length === 0;
+			document.querySelector('#screenshot-back-button').hidden = true;
+			window.scrollTo({ top: screenshotReturnScroll, behavior: 'auto' });
+		}
+
+		document.querySelector('#screenshot-mode-button').addEventListener('click', () => {
+			if (selectedMode === 'spin' || !resultGrid.children.length) return;
+			screenshotReturnScroll = window.scrollY;
+			document.body.classList.add('screenshot-mode');
+			document.querySelector('#screenshot-mode-button').hidden = true;
+			document.querySelector('#screenshot-back-button').hidden = false;
+		});
+		document.querySelector('#screenshot-back-button').addEventListener('click', exitScreenshotMode);
+		document.addEventListener('keydown', event => {
+			if (event.key === 'Escape') exitScreenshotMode();
+		});
+
+		function readRules(names, teamCount, teamSize) {
+			const lookup = new Map(names.map(name => [name.toLocaleLowerCase(), name]));
+			const aliases = new Map();
+			names.forEach(name => {
+				const alias = name.replace(/^\s*\d+[\s.)-]+/, '').trim().toLocaleLowerCase();
+				if (!alias) return;
+				const matches = aliases.get(alias) || [];
+				if (!matches.includes(name)) matches.push(name);
+				aliases.set(alias, matches);
+			});
+			const used = new Set();
+			const groups = [];
+			for (const rule of appliedRuleGroups) {
+				const group = [rule.primary, ...rule.partners].map(value => value.trim()).filter(Boolean);
+				if (!group.length) continue;
+				if (!rule.primary.trim() || !rule.partners.some(name => name.trim())) throw new Error('EACH RULE NEEDS A PRIMARY MEMBER AND AT LEAST ONE TEAMMATE.');
+				const resolved = group.map(name => {
+					const exactMatch = lookup.get(name.toLocaleLowerCase());
+					if (exactMatch) return exactMatch;
+					const matches = aliases.get(name.replace(/^\s*\d+[\s.)-]+/, '').trim().toLocaleLowerCase()) || [];
+					if (matches.length > 1) throw new Error(`"${name}" MATCHES MULTIPLE PLAYERS. USE THE FULL NAME INCLUDING ITS NUMBER.`);
+					return matches[0];
+				});
+				if (resolved.some(name => !name)) throw new Error('EVERY RULE NAME MUST EXIST IN THE PLAYER LIST.');
+				const groupMembers = new Set();
+				if (resolved.some(name => {
+					const key = name.toLocaleLowerCase();
+					if (used.has(key) || groupMembers.has(key)) return true;
+					groupMembers.add(key);
+					return false;
+				})) throw new Error('A PLAYER CAN ONLY APPEAR ONCE ACROSS ALL RULE GROUPS.');
+				if (resolved.length > names.length - teamCount + 1) throw new Error('THIS RULE GROUP IS TOO LARGE TO LEAVE AT LEAST ONE PLAYER FOR EACH OTHER TEAM.');
+				if (teamSize && resolved.length > teamSize) throw new Error('A RULE GROUP CANNOT BE LARGER THAN THE SELECTED TEAM SIZE.');
+				groupMembers.forEach(name => used.add(name));
+				groups.push(resolved);
+			}
+			return { groups, used };
+		}
+
+		function createTeams(names, teamCount, ruleData, teamSize) {
+			const teams = Array.from({ length: teamCount }, () => []);
+			const addToSmallestTeam = (members, enforceSize) => {
+				const eligibleTeams = teams.filter(team => !enforceSize || team.length + members.length <= teamSize);
+				if (!eligibleTeams.length) throw new Error('THE RULE GROUPS CANNOT FIT THE SELECTED TEAM SIZE. TRY A LARGER TEAM SIZE.');
+				const minimum = Math.min(...eligibleTeams.map(team => team.length));
+				const options = eligibleTeams.filter(team => team.length === minimum);
+				options[Math.floor(Math.random() * options.length)].push(...members);
+			};
+
+			if (ruleData) {
+				const { groups, used } = ruleData;
+				shuffle(groups).sort((a, b) => b.length - a.length).forEach(group => addToSmallestTeam(group, Boolean(teamSize)));
+				shuffle(names.filter(name => !used.has(name.toLocaleLowerCase()))).forEach(name => addToSmallestTeam([name], Boolean(teamSize)));
+			} else {
+				shuffle(names).forEach((name, index) => {
+					const teamIndex = teamSize ? teams.findIndex(team => team.length < teamSize) : index % teamCount;
+					if (teamIndex < 0) throw new Error('THE SELECTED TEAM SIZE CANNOT FIT ALL PLAYERS.');
+					teams[teamIndex].push(name);
+				});
+			}
+			return teams;
+		}
+
+		machineForm.addEventListener('submit', event => {
+			event.preventDefault();
+			if (miracleLoading) return;
+			const names = readMembers();
+			const splitBySize = machineSplitMode.value === 'size';
+			const splitValue = Number(machineTeamCount.value);
+			if (names.length < 2) { showToast('ADD AT LEAST 2 PLAYER NAMES.'); return; }
+			if (!Number.isInteger(splitValue) || splitValue < Number(machineTeamCount.min) || splitValue > Number(machineTeamCount.max)) {
+				showToast(splitBySize ? 'TEAM SIZE MUST BE BETWEEN 1 AND 200.' : 'TEAM COUNT MUST BE BETWEEN 2 AND 20.');
+				return;
+			}
+			const teamSize = splitBySize ? splitValue : null;
+			const count = splitBySize ? Math.ceil(names.length / splitValue) : splitValue;
+			if (splitBySize && count < 2) { showToast('TEAM SIZE MUST BE SMALLER THAN THE PLAYER COUNT.'); return; }
+			if (count > 20) { showToast('THE RESULT CANNOT HAVE MORE THAN 20 TEAMS. INCREASE THE TEAM SIZE.'); return; }
+			if (names.length < count) { showToast('PLAYER COUNT MUST BE AT LEAST THE NUMBER OF TEAMS.'); return; }
+			let ruleData = null;
+			if (selectedMode === 'with') {
+				try { ruleData = readRules(names, count, teamSize); }
+				catch (error) { showToast(error.message); return; }
+			}
+			let teams;
+			try { teams = createTeams(names, count, ruleData, teamSize); }
+			catch (error) { showToast(error.message); return; }
+			miracleLoading = true;
+			const miracleProgress = miracleLoader.querySelector('.arcade-loader-progress');
+			miracleProgress.style.animation = 'none';
+			void miracleProgress.offsetWidth;
+			miracleProgress.style.animation = '';
+			miracleLoader.hidden = false;
+			document.querySelector('#machine-submit').disabled = true;
+			document.body.setAttribute('aria-busy', 'true');
+			setTimeout(() => {
+				renderTeams(teams);
+				miracleLoader.hidden = true;
+				document.querySelector('#machine-submit').disabled = false;
+				document.body.removeAttribute('aria-busy');
+				miracleLoading = false;
+				showToast(`${names.length} PLAYERS DIVIDED INTO ${teams.length} TEAMS.`);
+			}, 3000);
+		});
+
+		function drawWheel(names) {
+			const context = wheelContext;
+			const size = wheel.width;
+			const center = size / 2;
+			const radius = center - 8;
+			context.clearRect(0, 0, size, size);
+			if (!names.length) {
+				context.beginPath(); context.arc(center, center, radius, 0, Math.PI * 2); context.fillStyle = '#e3e3e3'; context.fill();
+				context.fillStyle = '#171080'; context.font = '24px monospace'; context.textAlign = 'center'; context.fillText('ADD PLAYERS', center, center);
+				return;
+			}
+			const slice = Math.PI * 2 / names.length;
+			names.forEach((name, index) => {
+				const start = -slice / 2 + index * slice;
+				context.beginPath(); context.moveTo(center, center); context.arc(center, center, radius, start, start + slice); context.closePath();
+				context.fillStyle = wheelPalette[index % wheelPalette.length]; context.fill();
+				context.strokeStyle = '#ffffffaa'; context.lineWidth = 3; context.stroke();
+				if (names.length <= 40) {
+					context.save(); context.translate(center, center); context.rotate(start + slice / 2);
+					context.textAlign = 'right'; context.fillStyle = '#fff'; context.font = `bold ${Math.max(11, Math.min(20, 310 / names.length))}px Arial`;
+					context.shadowColor = '#171080'; context.shadowBlur = 3;
+					context.fillText(name.slice(0, 22), radius - 28, 6); context.restore();
+				}
+			});
+			context.beginPath(); context.arc(center, center, 45, 0, Math.PI * 2); context.fillStyle = '#ff6969'; context.fill(); context.lineWidth = 7; context.strokeStyle = '#fff8'; context.stroke();
+		}
+
+		machineMembers.addEventListener('input', () => { if (selectedMode === 'spin') drawWheel(readMembers()); });
+		function celebrateWinner() {
+			const canvas = document.querySelector('#confetti-canvas');
+			const context = canvas.getContext('2d');
+			const ratio = window.devicePixelRatio || 1;
+			canvas.width = innerWidth * ratio; canvas.height = innerHeight * ratio;
+			context.scale(ratio, ratio);
+			const colors = ['#e50909', '#fff', '#69d94c', '#ffd43b', '#31c7e8'];
+			const pieces = Array.from({ length: 180 }, () => ({ x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * .4, vx: (Math.random() - .5) * 5, vy: 2 + Math.random() * 5, size: 4 + Math.random() * 7, color: colors[Math.floor(Math.random() * colors.length)], spin: Math.random() * 6 }));
+			let frame = 0;
+			function animate() {
+				context.clearRect(0, 0, innerWidth, innerHeight);
+				pieces.forEach(piece => { piece.x += piece.vx; piece.y += piece.vy; piece.spin += .12; context.save(); context.translate(piece.x, piece.y); context.rotate(piece.spin); context.fillStyle = piece.color; context.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size * .65); context.restore(); });
+				if (++frame < 150) requestAnimationFrame(animate); else context.clearRect(0, 0, innerWidth, innerHeight);
+			}
+			animate();
+		}
+
+		document.querySelector('#spin-button').addEventListener('click', () => {
+			if (wheelBusy) return;
+			const names = readMembers();
+			if (!names.length) { showToast('ADD NAMES OR DROP A PLAYER FILE FIRST.'); return; }
+			wheelBusy = true;
+			const winnerIndex = Math.floor(Math.random() * names.length);
+			const sliceDegrees = 360 / names.length;
+			const currentTransform = getComputedStyle(wheel).transform;
+			const matrix = new DOMMatrixReadOnly(currentTransform === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : currentTransform);
+			const currentDegrees = (Math.atan2(matrix.b, matrix.a) * 180 / Math.PI + 360) % 360;
+			const stopOffset = (Math.random() - .5) * sliceDegrees * .7;
+			const desiredDegrees = -winnerIndex * sliceDegrees + stopOffset;
+			const remainingDegrees = (desiredDegrees - currentDegrees + 360) % 360;
+			const extraTurns = 9 + Math.floor(Math.random() * 5);
+			const targetDegrees = currentDegrees + 360 * extraTurns + remainingDegrees;
+			const brakeDistance = Math.min(sliceDegrees * .6, 24);
+			const overshoot = Math.min(sliceDegrees * .06, 4);
+			wheel.classList.remove('stopped');
+			wheel.classList.add('spinning');
+			document.querySelector('#winner-box').textContent = 'SPINNING...';
+			const animation = wheel.animate([
+				{ transform: `rotate(${currentDegrees}deg)`, offset: 0, easing: 'cubic-bezier(.1,.7,.1,1)' },
+				{ transform: `rotate(${targetDegrees - brakeDistance}deg)`, offset: .9, easing: 'ease-out' },
+				{ transform: `rotate(${targetDegrees + overshoot}deg)`, offset: .975, easing: 'ease-in-out' },
+				{ transform: `rotate(${targetDegrees}deg)`, offset: 1 }
+			], { duration: 7200 + Math.random() * 2300, fill: 'forwards' });
+			document.querySelector('#spin-button').disabled = true;
+			animation.onfinish = () => {
+				wheel.getAnimations().forEach(animation => animation.cancel());
+				wheel.style.transform = `rotate(${targetDegrees % 360}deg)`;
+				wheel.classList.remove('spinning');
+				wheel.classList.add('stopped');
+				setTimeout(() => {
+					document.querySelector('#winner-box').textContent = names[winnerIndex];
+					document.querySelector('#spin-button').disabled = false;
+					wheelBusy = false;
+					celebrateWinner();
+				}, 550);
+			};
+		});
+		document.querySelector('#clear-winner').addEventListener('click', () => { document.querySelector('#winner-box').textContent = 'READY TO SPIN'; });
+
+		const confettiCanvas = document.createElement('canvas');
+		confettiCanvas.id = 'confetti-canvas';
+		document.body.append(confettiCanvas);
+
+		document.querySelector('#contact-form').addEventListener('submit', event => {
+			event.preventDefault();
+			const form = new FormData(event.currentTarget);
+			const message = `Hello ANTSKY! My name is ${form.get('name')} (${form.get('phone')}). I would like to request this tool: ${form.get('request')}`;
+			window.open(`https://wa.me/628811184158?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+		});
+	</script>
+</body>
+</html>
